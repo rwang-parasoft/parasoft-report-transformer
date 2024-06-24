@@ -1,0 +1,25 @@
+{
+    "jline@2.14.6": {
+        "licenses": "The 2-Clause BSD License",
+        "publisher": "the original author or authors",
+        "repository": "https://github.com/jline/jline2",
+        "licenseUrl": "https://github.com/jline/jline2/blob/jline-2.14.6/LICENSE.txt"
+    },
+    "saxon-he@12.2": {
+        "licenses": "Mozilla Public License Version 2.0",
+        "publisher": "Saxonica",
+        "repository": "https://github.com/Saxonica/Saxon-HE"
+    },
+    "xmlresolver@5.1.2": {
+        "licenses": "Apache License, Version 2.0",
+        "publisher": "Norman Walsh and contributors",
+        "repository": "https://github.com/xmlresolver/xmlresolver",
+        "licenseUrl": "https://github.com/xmlresolver/xmlresolver/blob/5.1.2/LICENSE.md"
+    },
+    "xmlresolver-data@5.1.2": {
+        "licenses": "W3C License",
+        "publisher": "Norman Walsh and contributors",
+        "repository": "https://github.com/xmlresolver/xmlresolver",
+        "licenseUrl": "https://github.com/xmlresolver/xmlresolverdata/blob/main/src/notices/w3c-license.txt"
+    }
+}
