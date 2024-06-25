@@ -94,8 +94,11 @@
         <xsl:text>] } }</xsl:text>
         <xsl:call-template name="version_control_provenance"/>
         <xsl:text>, "results": [</xsl:text>
-            <xsl:call-template name="results"/>
             <!-- static violations list -->
+            <xsl:call-template name="results"/>
+        <xsl:text>], "artifacts": [ </xsl:text>
+        <!--   checked files list     -->
+        <xsl:call-template name="get_artifacts"/>
         <xsl:text>] } ] }</xsl:text>
     </xsl:template>
     
@@ -279,6 +282,23 @@
             <xsl:text>, "suppressions": [ { "kind": "external" } ]</xsl:text>
         </xsl:if>
         <xsl:text> }</xsl:text>
+    </xsl:template>
+
+    <xsl:template name="get_artifacts">
+        <xsl:variable name="checked_files" select="/ResultsSession/Scope/Locations/Loc[((@accLns &gt; 0) and (@accLns &lt; @totLns)) or (not(@accLns) and not(@rejBy))]"/>
+        <xsl:for-each select="$checked_files">
+            <xsl:if test="position() != 1">,</xsl:if>
+            <xsl:call-template name="get_artifact">
+                <xsl:with-param name="checked_file" select="current()" />
+            </xsl:call-template>
+        </xsl:for-each>
+    </xsl:template>
+
+    <xsl:template name="get_artifact">
+        <xsl:param name="checked_file"/>
+        <xsl:text>{ "location": { "uri": "</xsl:text>
+        <xsl:value-of select="$checked_file/@uri"/>
+        <xsl:text>" } }</xsl:text>
     </xsl:template>
     
     <xsl:template name="result_physical_location">
