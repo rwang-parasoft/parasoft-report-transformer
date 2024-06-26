@@ -97,8 +97,8 @@
             <!-- static violations list -->
             <xsl:call-template name="results"/>
         <xsl:text>], "artifacts": [ </xsl:text>
-        <!--   checked files list     -->
-        <xsl:call-template name="get_artifacts"/>
+            <!--   checked files list     -->
+            <xsl:call-template name="get_artifacts"/>
         <xsl:text>] } ] }</xsl:text>
     </xsl:template>
     
@@ -285,19 +285,19 @@
     </xsl:template>
 
     <xsl:template name="get_artifacts">
-        <xsl:variable name="checked_files" select="/ResultsSession/Scope/Locations/Loc[((@accLns &gt; 0) and (@accLns &lt; @totLns)) or (not(@accLns) and not(@rejBy))]"/>
-        <xsl:for-each select="$checked_files">
+        <xsl:variable name="checkedFiles" select="/ResultsSession/Scope/Locations/Loc[not(@rejBy) and (not(@accLns) or @accLns &gt; 0)]"/>
+        <xsl:for-each select="$checkedFiles">
             <xsl:if test="position() != 1">,</xsl:if>
             <xsl:call-template name="get_artifact">
-                <xsl:with-param name="checked_file" select="current()" />
+                <xsl:with-param name="checkedFile" select="current()" />
             </xsl:call-template>
         </xsl:for-each>
     </xsl:template>
 
     <xsl:template name="get_artifact">
-        <xsl:param name="checked_file"/>
+        <xsl:param name="checkedFile"/>
         <xsl:text>{ "location": { "uri": "</xsl:text>
-        <xsl:value-of select="$checked_file/@uri"/>
+        <xsl:value-of select="$checkedFile/@uri"/>
         <xsl:text>" } }</xsl:text>
     </xsl:template>
     
