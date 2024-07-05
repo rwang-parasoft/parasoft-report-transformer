@@ -9,8 +9,63 @@
     <xsl:param name="duplicates_as_code_flow">true</xsl:param>
     <!-- For cppTest professional report, "prjModule" attribute is not present. -->
     <xsl:variable name="isCPPProReport" select="not(/ResultsSession/@prjModule) and /ResultsSession/@toolName = 'C++test'"/>
-    <xsl:param name="pipelineBuildWorkingDirectory"><xsl:value-of select="/ResultsSession/@pipelineBuildWorkingDirectory"/></xsl:param>
-    
+    <xsl:param name="projectRootPaths"><xsl:value-of select="/ResultsSession/@projectRootPaths"/></xsl:param>
+
+    <xsl:variable name="uriPrefix">
+        <xsl:choose>
+            <xsl:when test="$isCPPProReport">
+                <!-- Do nothing since there is no uri attribute in Loc node for CPPtest pro-->
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="firstLocUri" select="/ResultsSession/Scope/Locations/Loc[1]/@uri"/>
+                <xsl:choose>
+                    <!-- for file:/xxx uri pattern -->
+                    <xsl:when test="matches($firstLocUri, '^file:/[^/]')">file:/</xsl:when>
+                    <!-- for file://hostname/xxx uri pattern -->
+                    <xsl:when test="matches($firstLocUri, '^file://[^/]+/')">
+                        <!-- Extract the hostname from an uri, like: the result is 'hostname' for uri 'file://hostname/folder/xxx' -->
+                        <xsl:variable name="hostname" select="replace($firstLocUri, '^file://([^/]+)(/.*)$', '$1')" />
+                        <xsl:value-of select="concat('file://', $hostname, '/')" />
+                    </xsl:when>
+                    <!-- for file:///xxx uri pattern -->
+                    <xsl:otherwise>file:///</xsl:otherwise>
+                </xsl:choose>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+
+    <xsl:variable name="tempProjectRootPathElements">
+        <xsl:variable name="projectRootPathArray" select="tokenize($projectRootPaths, ',')"/>
+        <xsl:for-each select="$projectRootPathArray">
+            <xsl:variable name="contactedUri">
+                <xsl:value-of select="$uriPrefix"/>
+                <xsl:value-of select="."/>
+            </xsl:variable>
+            <xsl:variable name="translatedUri" select="translate($contactedUri, '\', '/')"/>
+            <xsl:variable name="processedUri">
+                <xsl:choose>
+                    <xsl:when test="ends-with($translatedUri, '/')">
+                        <xsl:value-of select="$translatedUri"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="concat($translatedUri, '/')"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:element name="PROJECTROOT">
+                <xsl:attribute name="name">PROJECTROOT-<xsl:value-of select="position()"/></xsl:attribute>
+                <xsl:attribute name="uri">
+                    <xsl:value-of select="$processedUri"/>
+                </xsl:attribute>
+                <xsl:attribute name="encodedUri">
+                    <xsl:call-template name="getEncodedPath">
+                        <xsl:with-param name="path" select="$processedUri"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+            </xsl:element>
+        </xsl:for-each>
+    </xsl:variable>
+
     <xsl:variable name="qt">"</xsl:variable>
     <xsl:variable name="illegalChars" select="'\/&quot;&#xD;&#xA;&#x9;'"/>
     <xsl:variable name="illegalCharReplacements" select="'\/&quot;rnt'"/>
@@ -93,6 +148,14 @@
             <xsl:call-template name="rules_list"/>
         <xsl:text>] } }</xsl:text>
         <xsl:call-template name="version_control_provenance"/>
+
+        <!-- $tempProjectRootPathElements/PROJECTROOT will be empty if no value pass to projectRootPaths -->
+        <xsl:if test="$tempProjectRootPathElements/PROJECTROOT">
+            <xsl:text>, "originalUriBaseIds": {</xsl:text>
+                <xsl:call-template name="original_uri_base_ids"/>
+            <xsl:text>}</xsl:text>
+        </xsl:if>
+
         <xsl:text>, "results": [</xsl:text>
             <!-- static violations list -->
             <xsl:call-template name="results"/>
@@ -199,7 +262,18 @@
             <xsl:text>]</xsl:text>
         </xsl:if>
     </xsl:template>
-    
+
+    <xsl:template name="original_uri_base_ids">
+        <xsl:for-each select="$tempProjectRootPathElements/PROJECTROOT">
+            <xsl:if test="position() != 1">,</xsl:if>
+            <xsl:text>"</xsl:text>
+            <xsl:value-of select="@name"/>
+            <xsl:text>": { "uri": "</xsl:text>
+            <xsl:value-of select="@uri"/>
+            <xsl:text>" }</xsl:text>
+        </xsl:for-each>
+    </xsl:template>
+
     <xsl:template name="results">
         <xsl:for-each select="/ResultsSession/CodingStandards/StdViols/*[string-length(@supp)=0 or @supp!='true' or $skip_suppressed!='true']">
             <xsl:if test="position() != 1">
@@ -425,15 +499,13 @@
                 <xsl:variable name="locNode" select="/ResultsSession/Locations/Loc[@loc=$locFile]"/>
                 <xsl:choose>
                     <xsl:when test="$locNode">
-                        <xsl:variable name="processedPipelineBuildWorkingDirectory">
-                             <xsl:if test="string($pipelineBuildWorkingDirectory) != ''">
-                                <xsl:value-of select="translate($pipelineBuildWorkingDirectory, '\', '/')"/>
-                            </xsl:if>
+                        <xsl:variable name="processedProjectRootPath">
+                            <!-- TODO: get value from tempProjectRootPathElements -->
                         </xsl:variable>
                         <xsl:variable name="processedFsPath" select="translate($locNode/@fsPath, '\', '/')"/>
                         <xsl:choose>
-                            <xsl:when test="string($processedPipelineBuildWorkingDirectory) != '' and contains($processedFsPath, $processedPipelineBuildWorkingDirectory)">
-                               <xsl:value-of select="substring-after($processedFsPath, $processedPipelineBuildWorkingDirectory)"/><xsl:text>"</xsl:text>
+                            <xsl:when test="string($processedProjectRootPath) != '' and contains($processedFsPath, $processedProjectRootPath)">
+                               <xsl:value-of select="substring-after($processedFsPath, $processedProjectRootPath)"/><xsl:text>"</xsl:text>
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:value-of select="$processedFsPath"/><xsl:text>"</xsl:text>
@@ -459,16 +531,16 @@
                                 </xsl:if>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:variable name="processedPipelineBuildWorkingDirectory">
-                                    <xsl:call-template name="getProcessedPipelineBuildWorkingDirectory">
+                                <xsl:variable name="matchedProjectRootPath">
+                                    <xsl:call-template name="getMatchedProjectRootPath">
                                         <xsl:with-param name="locNode" select="$locNode"/>
                                     </xsl:call-template>
                                 </xsl:variable>
-                                <xsl:variable name="isExternalReport" select="$processedPipelineBuildWorkingDirectory = ''"/>
+                                <xsl:variable name="isExternalReport" select="$matchedProjectRootPath = ''"/>
                                 <xsl:choose>
                                     <xsl:when test="not($isExternalReport)">
                                          <!-- Get relative source file path -->
-                                        <xsl:value-of select="substring-after($locNode/@uri, $processedPipelineBuildWorkingDirectory)"/><xsl:text>"</xsl:text>
+                                        <xsl:value-of select="substring-after($locNode/@uri, $matchedProjectRootPath)"/><xsl:text>"</xsl:text>
                                     </xsl:when>
                                     <xsl:when test="$isExternalReport and $locNode/@resProjPath">
                                         <xsl:choose>
@@ -500,32 +572,32 @@
         <xsl:text> }</xsl:text>
     </xsl:template>
 
-    <xsl:template name="getProcessedPipelineBuildWorkingDirectory">
+    <xsl:template name="getMatchedProjectRootPath">
         <xsl:param name="locNode"/>
         <xsl:variable name="uri" select="$locNode/@uri"/>
-        <xsl:variable name="uncodedPipelineBuildWorkingDirectory">
-            <xsl:if test="string($pipelineBuildWorkingDirectory) != ''">
-                <xsl:value-of select="translate($pipelineBuildWorkingDirectory, '\', '/')"/>
-            </xsl:if>
+        <xsl:variable name="uncodedProjectRootPath">
+            <!-- TODO: get value from tempProjectRootPathElements -->
         </xsl:variable>
-        <xsl:variable name="encodedPipelineBuildWorkingDirectory">
-            <xsl:if test="string($uncodedPipelineBuildWorkingDirectory) != ''">
-                <!-- Replace % to %25 and space to %20 to get an encoded path-->
-                <xsl:value-of select="replace(replace($uncodedPipelineBuildWorkingDirectory, '%', '%25'), ' ', '%20')"/>
-            </xsl:if>
+        <xsl:variable name="encodedProjectRootPath">
+            <!-- TODO: get value from tempProjectRootPathElements -->
         </xsl:variable>
         <xsl:choose>
-            <xsl:when test="string($uncodedPipelineBuildWorkingDirectory) != '' and contains($uri, $uncodedPipelineBuildWorkingDirectory)">
-                <xsl:value-of select="$uncodedPipelineBuildWorkingDirectory"/>
+            <xsl:when test="string($uncodedProjectRootPath) != '' and contains($uri, $uncodedProjectRootPath)">
+                <xsl:value-of select="$uncodedProjectRootPath"/>
             </xsl:when>
-            <!-- Using encoded pipeline build working directory when the uri arrtibute of <Loc> tag in Parasoft tool report(e.g. jtest report) is encoded -->
-            <xsl:when test="string($encodedPipelineBuildWorkingDirectory) != '' and contains($uri, $encodedPipelineBuildWorkingDirectory)">
-                <xsl:value-of select="$encodedPipelineBuildWorkingDirectory"/>
+            <!-- Using encoded project root paths when the uri arrtibute of <Loc> tag in Parasoft tool report(e.g. jtest report) is encoded -->
+            <xsl:when test="string($encodedProjectRootPath) != '' and contains($uri, $encodedProjectRootPath)">
+                <xsl:value-of select="$encodedProjectRootPath"/>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:value-of select="''"/>
             </xsl:otherwise>
         </xsl:choose>
+    </xsl:template>
+
+    <xsl:template name="getEncodedPath">
+        <xsl:param name="path"/>
+        <xsl:value-of select="replace(replace($path, '%', '%25'), ' ', '%20')"/>
     </xsl:template>
     
     <!-- TODO optimize -->
