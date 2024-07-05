@@ -1,9 +1,14 @@
 # parasoft-report-transformer
+The parasoft-report-transformer project is designed to transform Parasoft XML reports into other formats.
 
-## How to build the project
+Supported formats:
+- SARIF
 
-Go to the project root directory and run the following command:
-```
-gradlew clean build
-```
-You can find the distribution in the build/distributions directory.
+## Build instructions
+
+1. Navigate to the project root directory.
+2. Run:
+   ```
+    gradlew clean build
+   ``` 
+3. Find the distribution in build/distributions.
