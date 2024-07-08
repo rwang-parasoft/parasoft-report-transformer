@@ -47,6 +47,10 @@ getJavaPath() {
 }
 
 # 1.Initialize variables:
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+BIN_DIR="$BASE_DIR/bin"
+export PATH="$BIN_DIR:$PATH"
+
 parasoft_tool_or_java_root_path=""
 xml_report_path=""
 sarif_report_path=""
@@ -111,5 +115,5 @@ if [ -n "$sarif_report_path" ]; then
   args+=(-o "$sarif_report_path")
 fi
 
-./parasoft-report-transformer xml2sarif "${args[@]}"
+parasoft-report-transformer xml2sarif "${args[@]}"
 
