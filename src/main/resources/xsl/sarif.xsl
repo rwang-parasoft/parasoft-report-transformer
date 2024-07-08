@@ -39,7 +39,8 @@
         <xsl:for-each select="$projectRootPathArray">
             <xsl:variable name="contactedUri">
                 <xsl:value-of select="$uriPrefix"/>
-                <xsl:value-of select="."/>
+                <!-- Trim the spaces at the front and back ends -->
+                <xsl:value-of select="replace(replace(., '^\s+', ''), '\s+$', '')"/>
             </xsl:variable>
             <xsl:variable name="translatedUri" select="translate($contactedUri, '\', '/')"/>
             <xsl:variable name="processedUri">
