@@ -3,7 +3,7 @@ print_usage() {
     echo "Usage: XMLToSARIF.sh -i <inputXmlReport> [-o <outputSarifReport>] [-t <toolOrJavaHomeDir>]"
     echo ""
     echo "Options:"
-    echo "  -i, --inputXmlReport      Path to the input XML report. (required)"
+    echo "  -i, --inputXmlReport      Path to the input Parasoft XML report. (required)"
     echo "  -o, --outputSarifReport   Path to the output SARIF report."
     echo "  -t, --toolOrJavaHomeDir   Path to the tool or Java home directory."
     echo ""

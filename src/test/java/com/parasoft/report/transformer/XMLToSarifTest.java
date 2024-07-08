@@ -122,7 +122,7 @@ public class XMLToSarifTest {
             int exitCode = command.execute(args);
 
             assertEquals(1, exitCode);
-            mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Input XML report file does not exist:")));
+            mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Input Parasoft XML report file does not exist:")));
             mockedLogger.verify(() -> Logger.error(endsWith("notExist.xml.")));
         });
     }
@@ -136,7 +136,7 @@ public class XMLToSarifTest {
             int exitCode = command.execute(args);
 
             assertEquals(1, exitCode);
-            mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Input XML report is not a file:")));
+            mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Input Parasoft XML report is not a file:")));
             mockedLogger.verify(() -> Logger.error(endsWith("xml.")));
         });
     }

@@ -32,22 +32,23 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-@Command(name = "xml2sarif",
-        mixinStandardHelpOptions = true, version = "xml2sarif 1.0",
-        description = "Convert XML report of static analysis to SARIF report.",
-        usageHelpAutoWidth = true
+@Command(
+    name = "xml2sarif",
+    mixinStandardHelpOptions = true,
+    description = "Convert Parasoft XML report of static analysis to SARIF report.",
+    usageHelpAutoWidth = true
 )
 public class XMLToSarif implements Callable<Integer> {
 
     public static final String SARIF_XSL_RESOURCE_PATH = "/xsl/sarif.xsl";
 
-    @Option(names = {"--inputXmlReport", "-i"}, required = true, description = "Path to the input XML report of static analysis.")
+    @Option(names = {"--inputXmlReport", "-i"}, required = true, description = "Path to the input Parasoft XML report of static analysis.")
     private File inputXmlReport;
 
     @Option(names = {"--outputSarifReport", "-o"}, description = "Path to the output SARIF report.")
     private File outputSarifReport;
 
-    @Option(names = {"--projectRootPaths", "-p"}, description = "Path(s) to the project root.")
+    @Option(names = {"--projectRootPaths", "-p"}, description = "Path(s) to the project root(s). Use comma to separate multiple paths.")
     private String projectRootPaths;
 
     public static void main(String[] args) {
@@ -71,17 +72,17 @@ public class XMLToSarif implements Callable<Integer> {
 
     private void checkInputAndOutputReportParams() {
         if (this.inputXmlReport == null) {
-            throw new IllegalArgumentException("Input XML report is required.");
+            throw new IllegalArgumentException("Input Parasoft XML report is required.");
         }
 
         if (!this.inputXmlReport.exists()) {
-            throw new IllegalArgumentException(MessageFormat.format("Input XML report file does not exist: {0}.", this.inputXmlReport));
+            throw new IllegalArgumentException(MessageFormat.format("Input Parasoft XML report file does not exist: {0}.", this.inputXmlReport));
         }
         if (!this.inputXmlReport.isFile()) {
-            throw new IllegalArgumentException(MessageFormat.format("Input XML report is not a file: {0}.", this.inputXmlReport));
+            throw new IllegalArgumentException(MessageFormat.format("Input Parasoft XML report is not a file: {0}.", this.inputXmlReport));
         }
         if (!this.inputXmlReport.canRead()) {
-            throw new IllegalArgumentException(MessageFormat.format("Input XML report file is not readable {0}.", this.inputXmlReport));
+            throw new IllegalArgumentException(MessageFormat.format("Input Parasoft XML report file is not readable {0}.", this.inputXmlReport));
         }
 
         if (this.outputSarifReport == null) {
@@ -108,7 +109,7 @@ public class XMLToSarif implements Callable<Integer> {
             XdmValue paramValue = new XdmAtomicValue(this.projectRootPaths);
             paramsMap.put(paramName, paramValue);
         }
-        Logger.info(MessageFormat.format("Transforming XML report to SARIF report: {0} -> {1}", this.inputXmlReport, this.outputSarifReport));
+        Logger.info(MessageFormat.format("Transforming Parasoft XML report to SARIF report: {0} -> {1}", this.inputXmlReport, this.outputSarifReport));
         try {
             XSLConverterUtil.transformReport(this.inputXmlReport, this.outputSarifReport, SARIF_XSL_RESOURCE_PATH, paramsMap);
         } catch (SaxonApiException e) {
