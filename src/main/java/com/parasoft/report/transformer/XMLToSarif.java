@@ -88,7 +88,8 @@ public class XMLToSarif implements Callable<Integer> {
         if (this.outputSarifReport == null) {
             this.outputSarifReport = new File(this.inputXmlReport.getParentFile(), this.inputXmlReport.getName().replace(".xml", ".sarif"));
         } else if(!this.outputSarifReport.getAbsolutePath().endsWith(".sarif")) {
-            throw new IllegalArgumentException(MessageFormat.format("Output SARIF report must have .sarif extension: {0}.", this.outputSarifReport));
+            this.outputSarifReport = new File(this.outputSarifReport.getAbsolutePath() + ".sarif");
+            Logger.warn("WARN: Output file name does not end with .sarif, automatically appended the extension.");
         }
     }
 
