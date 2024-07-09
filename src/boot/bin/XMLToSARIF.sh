@@ -30,8 +30,8 @@ getJavaPath() {
 
     local javaFileName="java"
     # Search for Java executable in following places:
-    ## bin                      -- Java home directory
-    ## bin/dottest/Jre_x64/bin  -- DotTest installation directory
+    ## bin                       -- Java home directory
+    ## bin/dottest/Jre_x64/bin   -- DotTest installation directory
     ## bin/jre/bin               -- Jtest, C++Test installation directory
     local javaPaths=("bin" "bin/dottest/Jre_x64/bin" "bin/jre/bin")
 
@@ -47,9 +47,9 @@ getJavaPath() {
 }
 
 # 1.Initialize variables:
-# Base directory of the transformer project
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-SARIF_XSL_PATH="$BASE_DIR/xsl/sarif.xsl"
+BIN_DIR="$BASE_DIR/bin"
+export PATH="$BIN_DIR:$PATH"
 
 parasoft_tool_or_java_root_path=""
 xml_report_path=""
@@ -87,17 +87,9 @@ if [ -z "$xml_report_path" ]; then
     echo "Error: \"-i\" or \"--inputXmlReport\" is required."
     print_usage
     exit 1
-elif [ ! -f "$xml_report_path" ]; then
-    echo "Error: \"$xml_report_path\" not found."
-    exit 1
 fi
 
-# Set default SARIF report path if not provided
-if [ -z "$sarif_report_path" ]; then
-    sarif_report_path="${xml_report_path%.*}.sarif"
-fi
-
-# Find Java path
+# Find Java path and set temporary JAVA_HOME if necessary
 if [ -z "$parasoft_tool_or_java_root_path" ]; then
     java_path=$(which java)
     if [ -z "$java_path" ]; then
@@ -105,8 +97,10 @@ if [ -z "$parasoft_tool_or_java_root_path" ]; then
         exit 1;
     fi
 else
-    if results=$(getJavaPath "$parasoft_tool_or_java_root_path"); then
-        java_path="$results"
+    if java_path=$(getJavaPath "$parasoft_tool_or_java_root_path"); then
+        java_home="${java_path%bin/java}"
+        export JAVA_HOME=$java_home
+        echo "Java home directory temporarily set to: $JAVA_HOME"
     else
         echo "Error: Tool or Java home directory is incorrect: \"$parasoft_tool_or_java_root_path\". Please check \"-t\" or \"--toolOrJavaHomeDir\" value."
         exit 1;
@@ -114,16 +108,12 @@ else
 fi
 
 ## 4. Generate SARIF report
-
-command="\"$java_path\" -jar \"$BASE_DIR/lib/saxon/saxon-he-12.2.jar\" -xsl:\"$SARIF_XSL_PATH\" -s:\"$xml_report_path\" -o:\"$sarif_report_path\" "
-eval "$command";
-
-return_code=$?
-if [ $return_code -eq 0 ]; then
-    abs_path=$(readlink -f "$sarif_report_path")
-    echo "SARIF report generated in: \"$abs_path\""
-    exit 0
-else
-    echo "Error: SARIF report generation failed."
-    exit 1
+args=(
+  -i "$xml_report_path"
+)
+if [ -n "$sarif_report_path" ]; then
+  args+=(-o "$sarif_report_path")
 fi
+
+parasoft-report-transformer xml2sarif "${args[@]}"
+
