@@ -360,20 +360,100 @@
     </xsl:template>
 
     <xsl:template name="get_artifacts">
-        <xsl:variable name="checkedFiles" select="/ResultsSession/Scope/Locations/Loc[not(@rejBy) and (not(@accLns) or @accLns &gt; 0)]"/>
-        <xsl:for-each select="$checkedFiles">
+        <xsl:variable name="checkedFiles">
+            <!--   Extract <Loc> elements     -->
+            <xsl:variable name="locs">
+                <xsl:choose>
+                    <xsl:when test="$isCPPProReport">
+                        <xsl:sequence select="/ResultsSession/Locations/Loc"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:sequence select="/ResultsSession/Scope/Locations/Loc[not(@rejBy) and (not(@accLns) or @accLns &gt; 0)]"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <!--   Packaged into general elements     -->
+            <xsl:choose>
+                <xsl:when test="$isCPPProReport">
+                    <xsl:for-each select="$locs/Loc/@fsPath">
+                        <URI>
+                            <xsl:attribute name="uri"><xsl:value-of select="translate(., '\', '/')"/></xsl:attribute>
+                        </URI>
+                    </xsl:for-each>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:for-each select="$locs/Loc/@uri">
+                        <URI>
+                            <xsl:attribute name="uri"><xsl:value-of select="."/></xsl:attribute>
+                        </URI>
+                    </xsl:for-each>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:for-each select="$checkedFiles/URI">
+            <xsl:variable name="matchedProjectPath">
+                <xsl:call-template name="get_matched_project_path">
+                    <xsl:with-param name="nodeWithUriAttribute" select="current()"/>
+                </xsl:call-template>
+            </xsl:variable>
             <xsl:if test="position() != 1">,</xsl:if>
-            <xsl:call-template name="get_artifact">
-                <xsl:with-param name="checkedFile" select="current()" />
-            </xsl:call-template>
+            <xsl:choose>
+                <xsl:when test="$matchedProjectPath/RESULT">
+                    <xsl:call-template name="get_relative_artifact">
+                        <xsl:with-param name="checkedFile" select="current()" />
+                        <xsl:with-param name="uriBase" select="$matchedProjectPath/RESULT/@uri"/>
+                        <xsl:with-param name="uriBaseId" select="$matchedProjectPath/RESULT/@name"/>
+                    </xsl:call-template>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:call-template name="get_default_artifact">
+                        <xsl:with-param name="checkedFile" select="current()" />
+                    </xsl:call-template>
+                </xsl:otherwise>
+            </xsl:choose>
         </xsl:for-each>
     </xsl:template>
 
-    <xsl:template name="get_artifact">
+    <xsl:template name="get_relative_artifact">
+        <xsl:param name="checkedFile"/>
+        <xsl:param name="uriBase"/>
+        <xsl:param name="uriBaseId"/>
+        <xsl:text>{ "location": { "uri": "</xsl:text>
+        <xsl:value-of select="substring-after($checkedFile/@uri, $uriBase)"/>
+        <xsl:text>", "uriBaseId": "</xsl:text>
+        <xsl:value-of select="$uriBaseId"/>
+        <xsl:text>" } }</xsl:text>
+    </xsl:template>
+
+    <xsl:template name="get_default_artifact">
         <xsl:param name="checkedFile"/>
         <xsl:text>{ "location": { "uri": "</xsl:text>
         <xsl:value-of select="$checkedFile/@uri"/>
         <xsl:text>" } }</xsl:text>
+    </xsl:template>
+
+    <xsl:template name="get_matched_project_path">
+        <!--   Select the matched project path from tempProjectRootPathElements by uri attribute    -->
+        <xsl:param name="nodeWithUriAttribute"/>
+        <xsl:variable name="defaultProjectPath" select="$tempProjectRootPathElements/PROJECTROOT[starts-with($nodeWithUriAttribute/@uri, @uri)]"/>
+        <xsl:choose>
+            <!--    Return the matched project path    -->
+            <xsl:when test="$defaultProjectPath">
+                <RESULT>
+                    <xsl:attribute name="name"><xsl:value-of select="$defaultProjectPath/@name"/></xsl:attribute>
+                    <xsl:attribute name="uri"><xsl:value-of select="$defaultProjectPath/@uri"/></xsl:attribute>
+                </RESULT>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="encodedProjectPath" select="$tempProjectRootPathElements/PROJECTROOT[starts-with($nodeWithUriAttribute/@uri, @encodedUri)]"/>
+                <xsl:if test="$encodedProjectPath">
+                    <RESULT>
+                        <xsl:attribute name="name"><xsl:value-of select="$encodedProjectPath/@name"/></xsl:attribute>
+                        <xsl:attribute name="uri"><xsl:value-of select="$encodedProjectPath/@encodedUri"/></xsl:attribute>
+                    </RESULT>
+                </xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
     
     <xsl:template name="result_physical_location">
