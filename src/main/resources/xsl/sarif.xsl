@@ -7,7 +7,7 @@
     <xsl:param name="skip_not_violated_rules">true</xsl:param>
     <xsl:param name="skip_suppressed">false</xsl:param>
     <xsl:param name="duplicates_as_code_flow">true</xsl:param>
-    <!-- For cppTest professional report, "prjModule" attribute is not present. -->
+    <!-- For cppTest professional report(not additional report generated since 2024.1), "prjModule" attribute is not present. -->
     <xsl:variable name="isCPPProReport" select="not(/ResultsSession/@prjModule) and /ResultsSession/@toolName = 'C++test'"/>
     <xsl:param name="projectRootPaths"><xsl:value-of select="/ResultsSession/@projectRootPaths"/></xsl:param>
 
@@ -573,107 +573,121 @@
     </xsl:template>
     
     <xsl:template name="artifact_location">
-        <xsl:text>"artifactLocation": { "uri": "</xsl:text>
+        <xsl:text>"artifactLocation": {</xsl:text>
         <xsl:choose>
-             <xsl:when test="$isCPPProReport">
+            <xsl:when test="$isCPPProReport">
                 <xsl:variable name="locFile" select="@locFile"/>
                 <xsl:variable name="locNode" select="/ResultsSession/Locations/Loc[@loc=$locFile]"/>
                 <xsl:choose>
                     <xsl:when test="$locNode">
-                        <xsl:variable name="processedProjectRootPath">
-                            <!-- TODO: get value from tempProjectRootPathElements -->
-                        </xsl:variable>
+                        <!-- Found <Loc> node matches with current violation -->
                         <xsl:variable name="processedFsPath" select="translate($locNode/@fsPath, '\', '/')"/>
+                        <xsl:variable name="processedProjectRootPath" select="$tempProjectRootPathElements/PROJECTROOT[starts-with($processedFsPath, @uri)]"/>
                         <xsl:choose>
-                            <xsl:when test="string($processedProjectRootPath) != '' and contains($processedFsPath, $processedProjectRootPath)">
-                               <xsl:value-of select="substring-after($processedFsPath, $processedProjectRootPath)"/><xsl:text>"</xsl:text>
+                            <xsl:when test="$processedProjectRootPath">
+                                <!-- Use relative uri when the uri has matching project root path -->
+                                <xsl:call-template name="relative_artifact_location">
+                                    <xsl:with-param name="uri" select="substring-after($processedFsPath, $processedProjectRootPath/@uri)"/>
+                                    <xsl:with-param name="uriBaseId" select="$processedProjectRootPath/@name"/>
+                                </xsl:call-template>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:value-of select="$processedFsPath"/><xsl:text>"</xsl:text>
+                                <!-- Use default uri when the uri doesn't have matching project root path -->
+                                <xsl:call-template name="default_artifact_location">
+                                    <xsl:with-param name="uri" select="$processedFsPath"/>
+                                </xsl:call-template>
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:value-of select="$locFile"/><xsl:text>"</xsl:text>
+                        <!-- No <Loc> matches with current violation -->
+                        <xsl:call-template name="default_artifact_location">
+                            <xsl:with-param name="uri" select="$locFile"/>
+                        </xsl:call-template>
                     </xsl:otherwise>
                 </xsl:choose>
-             </xsl:when>
-             <xsl:otherwise>
+            </xsl:when>
+            <xsl:otherwise>
                 <xsl:variable name="locRef" select="@locRef"/>
                 <xsl:variable name="locNode" select="/ResultsSession/Scope/Locations/Loc[@locRef=$locRef]"/>
                 <xsl:choose>
                     <xsl:when test="$locNode">
+                        <!-- Found <Loc> node matches with current violation -->
                         <xsl:choose>
                             <xsl:when test="$locNode/@scPath">
-                                <xsl:value-of select="$locNode/@scPath" /><xsl:text>"</xsl:text>
-                                <xsl:variable name="uriBaseId" select="$locNode/@repRef"/>
-                                <xsl:if test="$uriBaseId != ''">
-                                    <xsl:text>, "uriBaseId": "ROOT_</xsl:text><xsl:value-of select="$uriBaseId" /><xsl:text>"</xsl:text>
-                                </xsl:if>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:variable name="matchedProjectRootPath">
-                                    <xsl:call-template name="getMatchedProjectRootPath">
-                                        <xsl:with-param name="locNode" select="$locNode"/>
-                                    </xsl:call-template>
-                                </xsl:variable>
-                                <xsl:variable name="isExternalReport" select="$matchedProjectRootPath = ''"/>
+                                <!-- When source control information is included in report -->
+                                <xsl:variable name="scUri" select="$locNode/@scPath" />
+                                <xsl:variable name="scUriBaseId" select="$locNode/@repRef"/>
                                 <xsl:choose>
-                                    <xsl:when test="not($isExternalReport)">
-                                         <!-- Get relative source file path -->
-                                        <xsl:value-of select="substring-after($locNode/@uri, $matchedProjectRootPath)"/><xsl:text>"</xsl:text>
-                                    </xsl:when>
-                                    <xsl:when test="$isExternalReport and $locNode/@resProjPath">
-                                        <xsl:choose>
-                                            <xsl:when test="/ResultsSession/@toolId = 'dottest'">
-                                                <!-- For DotTest report, project name prefix is missing in "resProjPath" of "Loc".
-                                                    As a result, to use "locFile" instead. -->
-                                                <xsl:value-of select="concat('/', substring-after(@locFile, '/'))"/><xsl:text>"</xsl:text>
-                                            </xsl:when>
-                                            <xsl:otherwise>
-                                                <!-- For Jtest and cppTest standard reports, use "resProjPath" in "Loc". -->
-                                                <xsl:value-of select="concat('/', $locNode/@resProjPath)"/><xsl:text>"</xsl:text>
-                                            </xsl:otherwise>
-                                        </xsl:choose>
+                                    <xsl:when test="$scUriBaseId != ''">
+                                        <!-- Use relative uri when @repRef exists in <Loc> -->
+                                        <xsl:call-template name="relative_artifact_location">
+                                            <xsl:with-param name="uri" select="$scUri"/>
+                                            <xsl:with-param name="uriBaseId">ROOT_<xsl:value-of select="$scUriBaseId"/></xsl:with-param>
+                                        </xsl:call-template>
                                     </xsl:when>
                                     <xsl:otherwise>
-                                        <xsl:value-of select="@locFile"/><xsl:text>"</xsl:text>
+                                        <!-- Use default uri when @repRef doesn't exist in <Loc> -->
+                                        <xsl:call-template name="default_artifact_location">
+                                            <xsl:with-param name="uri" select="$scUri"/>
+                                        </xsl:call-template>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <!--  Get matching root path(root path) with current <Loc> -->
+                                <xsl:variable name="matchedProjectRootPath">
+                                    <xsl:call-template name="get_matched_project_path">
+                                        <xsl:with-param name="nodeWithUriAttribute" select="$locNode"/>
+                                    </xsl:call-template>
+                                </xsl:variable>
+                                <xsl:variable name="isAnyMatched" select="$matchedProjectRootPath/RESULT"/>
+                                <xsl:choose>
+                                    <xsl:when test="$isAnyMatched">
+                                        <!-- Use relative uri when the uri has matching project root path -->
+                                        <xsl:call-template name="relative_artifact_location">
+                                            <xsl:with-param name="uri" select="substring-after($locNode/@uri, $matchedProjectRootPath/RESULT/@uri)"/>
+                                            <xsl:with-param name="uriBaseId" select="$matchedProjectRootPath/RESULT/@name"/>
+                                        </xsl:call-template>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <!-- Use default uri when the uri doesn't have matching project root path -->
+                                        <xsl:call-template name="default_artifact_location">
+                                            <xsl:with-param name="uri" select="$locNode/@uri"/>
+                                        </xsl:call-template>
                                     </xsl:otherwise>
                                 </xsl:choose>
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:value-of select="@locFile"/><xsl:text>"</xsl:text>
+                        <!-- No <Loc> matches with current violation -->
+                        <xsl:call-template name="default_artifact_location">
+                            <xsl:with-param name="uri" select="@locFile"/>
+                        </xsl:call-template>
                     </xsl:otherwise>
                 </xsl:choose>
-             </xsl:otherwise>
+            </xsl:otherwise>
         </xsl:choose>
 
         <xsl:text> }</xsl:text>
     </xsl:template>
 
-    <xsl:template name="getMatchedProjectRootPath">
-        <xsl:param name="locNode"/>
-        <xsl:variable name="uri" select="$locNode/@uri"/>
-        <xsl:variable name="uncodedProjectRootPath">
-            <!-- TODO: get value from tempProjectRootPathElements -->
-        </xsl:variable>
-        <xsl:variable name="encodedProjectRootPath">
-            <!-- TODO: get value from tempProjectRootPathElements -->
-        </xsl:variable>
-        <xsl:choose>
-            <xsl:when test="string($uncodedProjectRootPath) != '' and contains($uri, $uncodedProjectRootPath)">
-                <xsl:value-of select="$uncodedProjectRootPath"/>
-            </xsl:when>
-            <!-- Using encoded project root paths when the uri arrtibute of <Loc> tag in Parasoft tool report(e.g. jtest report) is encoded -->
-            <xsl:when test="string($encodedProjectRootPath) != '' and contains($uri, $encodedProjectRootPath)">
-                <xsl:value-of select="$encodedProjectRootPath"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:value-of select="''"/>
-            </xsl:otherwise>
-        </xsl:choose>
+    <xsl:template name="default_artifact_location">
+        <xsl:param name="uri"/>
+        <xsl:text>"uri": " </xsl:text>
+        <xsl:value-of select="$uri"/>
+        <xsl:text>"</xsl:text>
+    </xsl:template>
+
+    <xsl:template name="relative_artifact_location">
+        <xsl:param name="uri"/>
+        <xsl:param name="uriBaseId"/>
+        <xsl:text>"uri": "</xsl:text>
+        <xsl:value-of select="$uri"/>
+        <xsl:text>", "uriBaseId": "</xsl:text>
+        <xsl:value-of select="$uriBaseId"/>
+        <xsl:text>"</xsl:text>
     </xsl:template>
 
     <xsl:template name="getEncodedPath">
