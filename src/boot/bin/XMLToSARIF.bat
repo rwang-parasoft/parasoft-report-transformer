@@ -11,6 +11,7 @@ if "%~1"=="" goto :required_param_error
 set XML_REPORT_PATH=
 set SARIF_REPORT_PATH=
 set JAVA_OR_PARASOFT_TOOL_ROOT_PATH=
+set PROJECT_ROOT_PATHS=
 
 :parse_args
 set PARAM_NAME=%~1
@@ -37,6 +38,10 @@ if "%PARAM_NAME%"=="-i" (
     set JAVA_OR_PARASOFT_TOOL_ROOT_PATH=%PARAM_VALUE%
 ) else if "%PARAM_NAME%"=="--toolOrJavaHomeDir" (
     set JAVA_OR_PARASOFT_TOOL_ROOT_PATH=%PARAM_VALUE%
+) else if "%PARAM_NAME%"=="-p" (
+    set PROJECT_ROOT_PATHS=%PARAM_VALUE%
+) else if "%PARAM_NAME%"=="--projectRootPaths" (
+    set PROJECT_ROOT_PATHS=%PARAM_VALUE%
 ) else (
     echo Error: Invalid option "%PARAM_NAME%"
     goto :print_usage
@@ -85,6 +90,9 @@ set COMMAND_ARGS=-i "%XML_REPORT_PATH%"
 if not "%SARIF_REPORT_PATH%"=="" (
     set COMMAND_ARGS=%COMMAND_ARGS% -o "%SARIF_REPORT_PATH%"
 )
+if not "%PROJECT_ROOT_PATHS%"=="" (
+    set COMMAND_ARGS=%COMMAND_ARGS% -p "%PROJECT_ROOT_PATHS%"
+)
 
 call parasoft-report-transformer xml2sarif %COMMAND_ARGS%
 exit /b %errorlevel%
@@ -97,12 +105,13 @@ goto :print_usage
 echo Error: Missing value for option: "%PARAM_NAME%"
 
 :print_usage
-echo Usage: XMLToSARIF.bat -i ^<inputXmlReport^> [-o ^<outputSarifReport^>] [-t ^<toolOrJavaHomeDir^>]
+echo Usage: XMLToSARIF.bat -i ^<inputXmlReport^> [-o ^<outputSarifReport^>] [-t ^<toolOrJavaHomeDir^>] [-p ^<projectRootPaths^>]
 echo.
 echo Options:
 echo   -i, --inputXmlReport      Path to the input XML report. (required)
 echo   -o, --outputSarifReport   Path to the output SARIF report.
 echo   -t, --toolOrJavaHomeDir   Path to the tool or Java home directory.
+echo   -p, --projectRootPaths    Comma-separated paths to the project roots.
 echo.
 exit /b 1
 
