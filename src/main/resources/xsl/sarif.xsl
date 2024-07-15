@@ -131,7 +131,7 @@
     <xsl:mode use-accumulators="#all"/>
     
     <xsl:template match="/ResultsSession">
-        <xsl:text>{ "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json", "version": "2.1.0", "runs": [ {</xsl:text>
+        <xsl:text>{ "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json", "version": "2.1.0", "runs": [ {</xsl:text>
         <xsl:text>"tool": { "driver": {</xsl:text>
         <xsl:text>"name": "</xsl:text>
         <xsl:choose>
