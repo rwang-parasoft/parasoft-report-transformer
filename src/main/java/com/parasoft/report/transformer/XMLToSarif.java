@@ -114,7 +114,7 @@ public class XMLToSarif implements Callable<Integer> {
                     Logger.warn(MessageFormat.format("WARN: Project root path does not exist on this machine: {0}.", path));
                 }
             }
-            this.avoidDuplicateProjectRootPaths(processedPaths);
+            processedPaths = this.avoidDuplicateProjectRootPaths(processedPaths);
             this.projectRootPaths = String.join(",", processedPaths);
         } else {
             this.projectRootPaths = null;
@@ -142,8 +142,8 @@ public class XMLToSarif implements Callable<Integer> {
         return pattern.matcher(path).matches();
     }
 
-    private void avoidDuplicateProjectRootPaths(String[] paths) {
-        Set<String> uniquePaths = new HashSet<>();
+    private String[] avoidDuplicateProjectRootPaths(String[] paths) {
+        ArrayList<String> uniquePaths = new ArrayList<>();
         for (String path : paths) {
             path = path.endsWith("/") ? path : path + "/";
             if (uniquePaths.contains(path)) {
@@ -157,5 +157,6 @@ public class XMLToSarif implements Callable<Integer> {
             }
             uniquePaths.add(path);
         }
+        return uniquePaths.toArray(new String[0]);
     }
 }
