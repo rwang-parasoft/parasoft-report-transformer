@@ -8,7 +8,9 @@ import org.tinylog.Logger;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
@@ -192,6 +194,20 @@ public class XMLToSarifTest {
     }
 
     @Test
+    public void testXMLToSarif_inputXmlReportIsNotAnXMLFile() {
+        testWithMockedLogger(mockedLogger -> {
+            XMLToSarif xml2sarif = new XMLToSarif();
+            CommandLine command  = new CommandLine(xml2sarif);
+            String[] args = {"--inputXmlReport", TEST_RESOURCES_LOC + "/notXmlFile.txt"};
+            int exitCode = command.execute(args);
+
+            assertEquals(1, exitCode);
+            mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Input Parasoft XML report is not an XML file:")));
+            mockedLogger.verify(() -> Logger.error(endsWith("txt.")));
+        });
+    }
+
+    @Test
     public void testXMLToSarif_outputSarifReportIsNotSarif() {
         testWithMockedLogger(mockedLogger -> {
             try {
@@ -282,9 +298,11 @@ public class XMLToSarifTest {
     }
 
     private void testXMLToSarif(String xmlFileName, String outputSarifFileName, String expectedSarifFileName, String projectRootPaths, String expectedProjectRootPaths) throws IOException {
-        File outputSarifFile = new File(TEST_RESOURCES_LOC, outputSarifFileName != null ? outputSarifFileName : expectedSarifFileName);
+        File outputSarifFile = new File(TEST_RESOURCES_LOC, outputSarifFileName != null ? outputSarifFileName : xmlFileName.replaceAll("\\.xml$", ".sarif"));
         File expectedOutputSarifFile = new File(TEST_RESOURCES_LOC, "/../expectedSarif/" + expectedSarifFileName);
-        assertTrue(expectedOutputSarifFile.exists());
+        if (!expectedOutputSarifFile.exists()) {
+            throw new FileNotFoundException(MessageFormat.format("Expected output SARIF file not found: {0}, please provide it.", expectedOutputSarifFile.getAbsolutePath()));
+        }
         try {
             XMLToSarif xml2sarif = new XMLToSarif();
             CommandLine command  = new CommandLine(xml2sarif);

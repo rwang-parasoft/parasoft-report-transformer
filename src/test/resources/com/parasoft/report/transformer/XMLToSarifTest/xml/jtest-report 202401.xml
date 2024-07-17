@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?><ResultsSession buildId="CICD_JavaProjectTemplate-2024-07-08" climode="true" endTime="2024-07-08T16:32:38+08:00" execEnv="win32_x86_64" hasViols="true" id="1721839056535" lang="en_US" machine="MACHINE-NAME" prjModule="com.parasoft:project-with-default-package" project="CICD_JavaProjectTemplate" tag="roller(can-be-removed)-com.parasoft:project-with-default-package-${scontrol_branch}-win32_x86_64" time="2024-07-08T16:32:38+08:00" toolDispName="Jtest" toolId="jtest" toolName="DTP Engine for Java" toolVer="2024.1.1" user="user">
-   <TestConfig machine="MACHINE-NAME" name="roller(can-be-removed)" pseudoUrl="jtest.dtp://roller(can-be-removed)" user="user"/>
+   <TestConfig machine="MACHINE-NAME" name="settings" pseudoUrl="jtest.dtp://roller(can-be-removed)" user="user"/>
    <Authors>
       <Author id="dev1" name="user"/>
    </Authors>
