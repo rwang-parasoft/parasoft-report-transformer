@@ -89,12 +89,17 @@ public class XMLToSarif implements Callable<Integer> {
         if (!this.inputXmlReport.isFile()) {
             throw new IllegalArgumentException(MessageFormat.format("Input Parasoft XML report is not a file: {0}.", this.inputXmlReport));
         }
+        if (!this.inputXmlReport.getName().toLowerCase().endsWith(".xml")) {
+            throw new IllegalArgumentException(MessageFormat.format("Input Parasoft XML report is not an XML file: {0}.", this.inputXmlReport));
+        }
         if (!this.inputXmlReport.canRead()) {
             throw new IllegalArgumentException(MessageFormat.format("Input Parasoft XML report file is not readable {0}.", this.inputXmlReport));
         }
 
         if (this.outputSarifReport == null) {
-            this.outputSarifReport = new File(this.inputXmlReport.getParentFile(), this.inputXmlReport.getName().replace(".xml", ".sarif"));
+            // Replace the .xml extension of the input XML report with .sarif
+            String outputSarifFileName = this.inputXmlReport.getName().replaceAll("\\.xml$", ".sarif");
+            this.outputSarifReport = new File(this.inputXmlReport.getParentFile(), outputSarifFileName);
         } else if(!this.outputSarifReport.getAbsolutePath().endsWith(".sarif")) {
             this.outputSarifReport = new File(this.outputSarifReport.getAbsolutePath() + ".sarif");
             Logger.warn("WARNING: Output file name does not end with .sarif, automatically appended the extension.");
@@ -114,7 +119,7 @@ public class XMLToSarif implements Callable<Integer> {
                     Logger.warn(MessageFormat.format("WARNING: Project root path does not exist on this machine: {0}.", path));
                 }
             }
-            this.avoidDuplicateProjectRootPaths(processedPaths);
+            processedPaths = this.avoidDuplicateProjectRootPaths(processedPaths);
             this.projectRootPaths = String.join(",", processedPaths);
         } else {
             this.projectRootPaths = null;
@@ -142,8 +147,8 @@ public class XMLToSarif implements Callable<Integer> {
         return pattern.matcher(path).matches();
     }
 
-    private void avoidDuplicateProjectRootPaths(String[] paths) {
-        Set<String> uniquePaths = new HashSet<>();
+    private String[] avoidDuplicateProjectRootPaths(String[] paths) {
+        ArrayList<String> uniquePaths = new ArrayList<>();
         for (String path : paths) {
             path = path.endsWith("/") ? path : path + "/";
             if (uniquePaths.contains(path)) {
@@ -157,5 +162,6 @@ public class XMLToSarif implements Callable<Integer> {
             }
             uniquePaths.add(path);
         }
+        return uniquePaths.toArray(new String[0]);
     }
 }
