@@ -76,7 +76,7 @@ if "%JAVA_OR_PARASOFT_TOOL_ROOT_PATH%"=="" (
         if exist "%JAVA_OR_PARASOFT_TOOL_ROOT_PATH%\%%p\java.exe" (
             set java_path=%JAVA_OR_PARASOFT_TOOL_ROOT_PATH%\%%p
             set JAVA_HOME=!java_path:~0,-4!
-            echo Java home directory temporarily set to: "!JAVA_HOME!"
+            echo Java home directory set to: "!JAVA_HOME!"
             goto :generate_report
         )
     )
@@ -91,6 +91,11 @@ if not "%SARIF_REPORT_PATH%"=="" (
     set COMMAND_ARGS=%COMMAND_ARGS% -o "%SARIF_REPORT_PATH%"
 )
 if not "%PROJECT_ROOT_PATHS%"=="" (
+    :remove_trailing_backslashes
+    if "%PROJECT_ROOT_PATHS:~-1%"=="\" (
+        set "PROJECT_ROOT_PATHS=%PROJECT_ROOT_PATHS:~0,-1%"
+        goto :remove_trailing_backslashes
+    )
     set COMMAND_ARGS=%COMMAND_ARGS% -p "%PROJECT_ROOT_PATHS%"
 )
 
