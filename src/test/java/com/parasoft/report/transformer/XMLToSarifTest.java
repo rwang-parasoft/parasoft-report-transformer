@@ -241,16 +241,22 @@ public class XMLToSarifTest {
 
     @Test
     public void testXMLToSarif_invalidOutputSarifReportName() {
-        testWithMockedLogger(mockedLogger -> {
-            XMLToSarif xml2sarif = new XMLToSarif();
-            CommandLine command  = new CommandLine(xml2sarif);
-            String[] args = {"--inputXmlReport", TEST_RESOURCES_LOC + "/jtest-report-202401.xml",
-                             "--outputSarifReport", TEST_RESOURCES_LOC + "/invalid-sarif-report-><|.sarif"};
-            int exitCode = command.execute(args);
+        String osName = System.getProperty("os.name").toLowerCase();
 
-            assertEquals(1, exitCode);
-            mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Transformation error: Failed to create output file file:")));
-        });
+        if (osName.contains("win")) {
+            testWithMockedLogger(mockedLogger -> {
+                XMLToSarif xml2sarif = new XMLToSarif();
+                CommandLine command  = new CommandLine(xml2sarif);
+                String[] args = {"--inputXmlReport", TEST_RESOURCES_LOC + "/jtest-report-202401.xml",
+                        "--outputSarifReport", TEST_RESOURCES_LOC + "/invalid-sarif-report-><|.sarif"};
+                int exitCode = command.execute(args);
+
+                assertEquals(1, exitCode);
+                mockedLogger.verify(() -> Logger.error(startsWith("ERROR: Transformation error: Failed to create output file file:")));
+            });
+        } else {
+            System.out.println("Skipping test on Linux");
+        }
     }
 
     @Test
