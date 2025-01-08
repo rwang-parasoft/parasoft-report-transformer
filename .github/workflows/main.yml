@@ -42,7 +42,7 @@ jobs:
 
     # Generates the jtest.data.json input file.
     - name: Create input for Jtest
-      run: ./gradlew clean build jtest -I D:\parasoft-tools\All\2024.2.0\jtest\integration\gradle\init.gradle "-Djtest.skip=true"
+      run: ./gradlew clean build jtest -I D:\Installed\Parasoft\parasoft_jtest_2024.1.1\jtest\integration\gradle\init.gradle "-Djtest.skip=true"
 
     # Runs code analysis with Jtest.
     - name: Run Jtest
@@ -50,7 +50,7 @@ jobs:
       uses: parasoft/run-jtest-action@2.0.0
       with:
         #Uses the jtest.data.json generated with the Gradle command in the previous step
-        installDir: D:/parasoft-tools/All/2024.2.0/jtest
+        installDir: D:/Installed/Parasoft/parasoft_jtest_2024.1.1/jtest
         testConfig: 'jtest_settings.properties'
         input: build/jtest/jtest.data.json
         
